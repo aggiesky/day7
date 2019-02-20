@@ -1,8 +1,7 @@
-package edu.acc.j2ee.hubbub;
+package edu.acc.j2ee.hubbub.domain;
 
-import edu.acc.j2ee.hubbub.domain.post.Post;
-import edu.acc.j2ee.hubbub.domain.profile.Profile;
-import edu.acc.j2ee.hubbub.domain.user.User;
+import edu.acc.j2ee.hubbub.DaoException;
+import edu.acc.j2ee.hubbub.HashTool;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -185,9 +184,39 @@ public class HubbubDao {
                 String lastName = rs.getString("lastname");
                 String email = rs.getString("email");
                 String biography = rs.getString("biography");
+                String mime = rs.getString("mime");
+                byte[] avatar = rs.getBytes("avatar");
+                List<User> followees = findFollowingByUser(owner, "follower", "followee");
+                List<User> followers = findFollowingByUser(owner, "followee", "follower");
                 int id = rs.getInt("id");
                 Profile profile = new Profile(owner, firstName, lastName, email, biography, id);
+                profile.setMime(mime);
+                //if (avatar != null && avatar.length > 0)
+                    profile.setAvatar(avatar);
+                profile.setFollowees(followees);
+                profile.setFollowers(followers);
                 return profile;
+            }
+        }
+        catch (SQLException sqle) {
+            throw new DaoException(sqle);
+        }
+    }
+    
+    public List<User> findFollowingByUser(User user, String major, String minor) {
+        String sql = String.format(
+                "SELECT %s FROM following WHERE %s = ? ORDER BY %s",
+                minor, major, minor);
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setString(1, user.getUsername());
+            try (ResultSet rs = pst.executeQuery()) {
+                List<User> result = new ArrayList<>();
+                while (rs.next()) {
+                    String name = rs.getString(minor);
+                    User u = findUserByUsername(name);
+                    result.add(u);
+                }
+                return result;
             }
         }
         catch (SQLException sqle) {
@@ -236,7 +265,7 @@ public class HubbubDao {
             return; // ok to have null avatar
         String sql = "UPDATE profiles SET avatar = ?, mime = ? WHERE owner = ?";
         try (PreparedStatement pst = conn.prepareStatement(sql)) {
-            pst.setBlob(1, is);
+            pst.setBytes(1, imgdata);
             pst.setString(2, mime);
             pst.setString(3, user.getUsername());
             pst.executeUpdate();
@@ -246,8 +275,7 @@ public class HubbubDao {
     }
     
     private byte[] imageFromStream(InputStream is) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        try {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[0xFFFF];
             for (int len; (len = is.read(buffer)) != -1;)
                 os.write(buffer, 0, len);
@@ -256,5 +284,31 @@ public class HubbubDao {
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }          
+    }
+    
+    public void revertAvatarFor(User user) {
+        String sql = "UPDATE profiles SET avatar = NULL, mime = NULL WHERE owner = ?";
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setString(1, user.getUsername());
+            pst.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new DaoException(sqle);
+        } 
+    }
+    
+    public void follow(User user, User target) {
+        String sql = "INSERT INTO following VALUES (?,?)";
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setString(1, user.getUsername());
+            pst.setString(2, target.getUsername());
+            pst.executeUpdate();
+            Profile userProfile = findProfileByUser(user);
+            Profile targetProfile = findProfileByUser(target);
+            userProfile.getFollowees().add(target);
+            targetProfile.getFollowers().add(user);
+        }
+        catch (SQLException sqle) {
+            throw new DaoException(sqle);
+        }
     }
 }

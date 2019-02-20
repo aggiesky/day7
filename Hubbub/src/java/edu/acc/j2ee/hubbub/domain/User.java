@@ -1,4 +1,4 @@
-package edu.acc.j2ee.hubbub.domain.user;
+package edu.acc.j2ee.hubbub.domain;
 
 import java.util.Date;
 

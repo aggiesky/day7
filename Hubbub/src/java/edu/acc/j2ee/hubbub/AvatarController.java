@@ -1,7 +1,8 @@
 package edu.acc.j2ee.hubbub;
 
-import edu.acc.j2ee.hubbub.domain.profile.Profile;
-import edu.acc.j2ee.hubbub.domain.user.User;
+import edu.acc.j2ee.hubbub.domain.HubbubDao;
+import edu.acc.j2ee.hubbub.domain.Profile;
+import edu.acc.j2ee.hubbub.domain.User;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -22,13 +23,13 @@ public class AvatarController extends HttpServlet {
             String mime = profile.getMime();
             byte[] avatar = profile.getAvatar();
             if (avatar == null || mime == null) {
-                response.setStatus(404);
+                response.sendRedirect("images/domo.jpg");
                 return;
             }
             response.setContentType(mime);
             response.getOutputStream().write(avatar);
         } catch (IOException ioe) {
-            response.setStatus(404);
+            response.sendRedirect("images/domo.jpg");
         }
 
     }

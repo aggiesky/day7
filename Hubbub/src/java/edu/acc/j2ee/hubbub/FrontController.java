@@ -1,8 +1,9 @@
 package edu.acc.j2ee.hubbub;
 
-import edu.acc.j2ee.hubbub.domain.user.User;
-import edu.acc.j2ee.hubbub.domain.post.Post;
-import edu.acc.j2ee.hubbub.domain.profile.Profile;
+import edu.acc.j2ee.hubbub.domain.HubbubDao;
+import edu.acc.j2ee.hubbub.domain.User;
+import edu.acc.j2ee.hubbub.domain.Post;
+import edu.acc.j2ee.hubbub.domain.Profile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -35,6 +36,8 @@ public class FrontController extends HttpServlet {
             case "post": destination = post(request); break;
             case "profile": destination = profile(request); break;
             case "avatar": destination = avatar(request); break;
+            case "revert": destination = revert(request); break;
+            case "follow": destination = follow(request); break;
         }
         
         String redirect = this.getServletConfig().getInitParameter("redirect.tag");
@@ -173,6 +176,7 @@ public class FrontController extends HttpServlet {
                 request.setAttribute("flash", "Couldn't retrieve profile: " +
                         e.getMessage());
             }
+            return "profile";
         }
         
         // POST mapping
@@ -195,8 +199,11 @@ public class FrontController extends HttpServlet {
     }
     
     private String avatar(HttpServletRequest request) {
-        if (this.isGet(request)) 
+        if (this.isGet(request)) {
+            Profile profile = dao.findProfileByUser(getSessionUser(request));
+            request.setAttribute("profile", profile);
             return "upload";
+        }
         try {
             final Part filePart = request.getPart("avatar");
             String filename = filePart.getSubmittedFileName();
@@ -210,10 +217,35 @@ public class FrontController extends HttpServlet {
             dao.updateAvatar(user, filetype, data);
             Profile profile = dao.findProfileByUser(user);
             request.setAttribute("profile", profile);
-        } catch (IOException | ServletException e) {
+        } catch (IOException | ServletException | DaoException e) {
             request.setAttribute("flash", e.getMessage());
         }
         return "upload";
+    }
+    
+    private String revert(HttpServletRequest request) {
+        User user = this.getSessionUser(request);
+        try {
+            dao.revertAvatarFor(user);
+            Profile profile = dao.findProfileByUser(user);
+            request.setAttribute("profile", profile);
+            request.setAttribute("for", user.getUsername());
+        } catch (DaoException de) {
+            request.setAttribute("flash", de.getMessage());
+        }
+        return "profile";
+    }
+    
+    private String follow(HttpServletRequest request) {
+        if (notLoggedIn(request))
+            return "redirect:timeline";
+        User user = this.getSessionUser(request);
+        String targetName = request.getParameter("target");
+        if (targetName.equalsIgnoreCase(user.getUsername()))
+            return "redirect:wall";
+        User target = dao.findUserByUsername(targetName);
+        dao.follow(user, target);
+        return "redirect:profile";
     }
 
     private HubbubDao getDao() {

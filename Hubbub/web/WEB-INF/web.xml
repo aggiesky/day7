@@ -66,7 +66,7 @@
             <param-value>5</param-value>
         </init-param>
         <multipart-config>
-            <location>/tmp</location>
+            <!--<location>/tmp</location>-->
             <max-file-size>200000</max-file-size>
         </multipart-config>
     </servlet>

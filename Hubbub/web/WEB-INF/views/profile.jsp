@@ -38,6 +38,10 @@
         <img src="images/domo.jpg"/>
             </c:otherwise>
         </c:choose>
+            <c:if test="${param.for eq user.username}">
+                <a href="main?action=avatar">Upload a new avatar</a> |
+                <a href="main?action=revert">Revert avatar to default</a>
+            </c:if>
         <form method="POST" action="main">
             <input type="hidden" name="action" value="profile"/>
             <input type="hidden" name="for" value="${param.for}"/>
@@ -71,5 +75,17 @@
                 </c:if>
             </table>
         </form>
+        <h3>Currently Following:</h3>
+        <ul>
+        <c:forEach var="followee" items="${profile.followees}">
+            <li><a href="main?action=profile&for=${followee}">${followee}</a></li>
+        </c:forEach>
+        </ul>
+        <h3>Currently Being Followed By:</h3>
+        <ul>
+        <c:forEach var="follower" items="${profile.followers}">
+            <li><a href="main?action=profile&for=${follower}">${follower}</a></li>
+        </c:forEach>
+        </ul>
     </body>
 </html>

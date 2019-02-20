@@ -1,6 +1,7 @@
-package edu.acc.j2ee.hubbub.domain.profile;
+package edu.acc.j2ee.hubbub.domain;
 
-import edu.acc.j2ee.hubbub.domain.user.User;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Profile implements java.io.Serializable {
     public static final String NAME_PATTERN = "^[A-Za-z]{1,50}$";
@@ -13,6 +14,8 @@ public class Profile implements java.io.Serializable {
     private String biography;
     private byte[] avatar;
     private String mime;
+    private List<User> followees = new ArrayList<>();
+    private List<User> followers = new ArrayList<>();
     private int    id;
     
     public Profile() {
@@ -104,6 +107,22 @@ public class Profile implements java.io.Serializable {
     
     public void setMime(String mime) {
         this.mime = mime;
+    }
+    
+    public List<User> getFollowees() {
+        return followees;
+    }
+    
+    public void setFollowees(List<User> followees) {
+        this.followees = followees;
+    }
+    
+    public List<User> getFollowers() {
+        return followers;
+    }
+    
+    public void setFollowers(List<User> followers) {
+        this.followers = followers;
     }
     
     public int getId() {

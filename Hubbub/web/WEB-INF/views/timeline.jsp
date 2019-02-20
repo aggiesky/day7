@@ -19,6 +19,9 @@
                 <a href="main?action=post">Post Yer Hack Status</a> |
                 <a href="main?action=wall&for=${user}">Show Me My Wall</a> |
                 <a href="main?action=profile&for=${user}">View My Profile</a> |
+                <c:if test="${not empty param.for and param.for ne user.username}">
+                    <a href="main?action=follow&target=${param.for}"/>Follow ${param.for}</a> |
+                </c:if>
                 <a href="main?action=logout">Log Me Out</a>
             </c:when>
             <c:otherwise>

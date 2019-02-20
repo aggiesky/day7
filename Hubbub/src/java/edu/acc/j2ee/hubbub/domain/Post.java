@@ -1,6 +1,5 @@
-package edu.acc.j2ee.hubbub.domain.post;
+package edu.acc.j2ee.hubbub.domain;
 
-import edu.acc.j2ee.hubbub.domain.user.User;
 import java.util.Date;
 
 public class Post implements java.io.Serializable {
