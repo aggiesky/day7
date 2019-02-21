@@ -79,3 +79,11 @@ CHANGES MADE BETWEEN DAY6 AND DAY7 HUBBUB:
 	those tags, add search capability for tags and for text in users'
 	posts and biographies.
 
+OH! And not to be forgotten, I followed Saranya's suggestion and
+stored follower/followee relations as List<String> instead
+of List<User> in Profile.java - this is more memory efficient and,
+conveniently, avoids a stack overflow that would be caused by
+loading a user by loading their profile which references followers
+and followees as users that must be loaded, along with their profiles,
+which list users which need profiles which list users....
+Good call, Saranya!
