@@ -54,3 +54,28 @@ JDBC CORE
 	ResultSet
 		next(), getJavaDataType(column-index or column-name)
 	
+
+CHANGES MADE BETWEEN DAY6 AND DAY7 HUBBUB:
+
+1) I changed the User and Profile domains and tables so that
+	user objects have a reference to their profile, not
+	the other way around. This makes everything involving
+	profiles easier - this required changes to bootstrap-derby.sql,
+	User.java, Post.java, HubbubDao.java, FrontController.java,
+	timeline.jsp, post.jsp, profile.jsp, login.jsp, join.jsp,
+	and upload.jsp!
+2) I reworked all of the HubbubDao methods to just happily throw
+	their SQLExceptions and the FrontController catches them -
+	now the error messages are rendering in the flash attributes.
+3) I was accidentally using rs.getDate() instead of rs.getTimestamp()
+	in the result sets of the post retrieval methods of HubbubDao -
+	that's why posts always showed 12:00:00 AM - now that I'm using
+	timestamps, they're rendering correctly in timeline.jsp and post.jsp
+4) I added an unfollow capability. When you're viewing someone else's
+	wall, there's a Follow link you click on to follow them and now that
+	link changes to Unfollow if you're already following them.
+5) Features to come: integrate the posts of people you're following into
+	your wall, identify hash tags in posts and create walls based on
+	those tags, add search capability for tags and for text in users'
+	posts and biographies.
+
