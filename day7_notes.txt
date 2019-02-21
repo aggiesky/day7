@@ -1,0 +1,56 @@
+Handling File Uploads into your Database with JDBC:
+
+1) Write an upload form
+	<form method=POST action="..." enctype="multipart/form-data">
+		<input type="file" name="part-name"/>
+			This is what shows the file chooser
+2) Edit web.xml to enable multipart form handling for your
+	front controller:
+		<servlet>
+			...
+			<multipart-config>
+				<max-file-size></max-file-size>
+			</multipart-config>
+3) Process the form submission in your front controller:
+	handlerMethod(HttpServletRequest request) {
+		Part part = request.getPart("part-name");
+		String uploadedFileName = part.getFileName();
+		String uploadedMimeType = part.getContentType();
+		InputStream data = part.getInputStream();
+4) Add a BLOB column to your domain table and a byte array to
+	your domain class, along with getters and setters
+	
+5) Use setBytes() in your prepared statement for insert/update
+	and getBytes() in your select
+6) A utility method for converting an input stream into a byte
+	array for your insert/update statements:
+	
+    private byte[] imageFromStream(InputStream is) {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[0xFFFF];
+            for (int len; (len = is.read(buffer)) != -1;)
+                os.write(buffer, 0, len);
+            os.flush();
+            return os.toByteArray();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }          
+    }
+
+7) Write a servlet to send the BLOB bytes in a response!!
+
+
+JDBC CORE
+	DriverManager
+		getConnection(jdbcUrl, username, password)
+	Connection
+		createStatement(), createPreparedStatement(sql)
+		// optional argument to request generated keys
+	Statement
+		executeQuery(sql), executeUpdate(sql)
+	PreparedStatement
+		setJavaType(question-mark-position, compatible value)
+		executeQuery(), executeUpdate()
+	ResultSet
+		next(), getJavaDataType(column-index or column-name)
+	
