@@ -19,9 +19,14 @@
                 <a href="main?action=post">Post Yer Hack Status</a> |
                 <a href="main?action=wall&for=${user}">Show Me My Wall</a> |
                 <a href="main?action=profile&for=${user}">View My Profile</a> |
-                <c:if test="${not empty param.for and param.for ne user.username}">
+                <c:choose>
+                <c:when test="${not empty param.for and param.for ne user.username and not user.profile.followees.contains(param.for)}">
                     <a href="main?action=follow&target=${param.for}"/>Follow ${param.for}</a> |
-                </c:if>
+                </c:when>
+                <c:when test="${not empty param.for and param.for ne user.username and user.profile.followees.contains(param.for)}">
+                    <a href="main?action=unfollow&target=${param.for}"/>Unfollow ${param.for}</a> |
+                </c:when>
+            </c:choose>
                 <a href="main?action=logout">Log Me Out</a>
             </c:when>
             <c:otherwise>
@@ -47,7 +52,7 @@
         <c:forEach var="post" items="${posts}">
             <li>
                 Posted by
-                <span class="author" title="${post.author.joinDate}">
+                <span class="author" title="${post.author.profile.joinDate}">
                     <c:choose>
                         <c:when test="${not empty user}">
                             <a href="main?action=wall&for=${post.author}">

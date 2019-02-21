@@ -21,17 +21,13 @@
         <form method="POST" action="main" enctype="multipart/form-data">
             <input type="hidden" name="action" value="avatar"/>
             <table id="formtable">
-                <tr><td><label for="mime">Use yer chooser:</label></td><td>Current Avatar:</td></tr>
-                <tr><td><input type="file" name="avatar" id="avatar"/></td><td rowspan="2">
-                    <c:choose>
-                        <c:when test="${profile.mime ne null}">
-                            <img src="avatar?for=${user.username}"/>
-                        </c:when>
-                        <c:otherwise>
-                            <img src="images/domo.jpg"/>
-                        </c:otherwise>
-                    </c:choose>
-                    </td>
+                <tr>
+                    <td><label for="mime">Use yer chooser:</label></td>
+                    <td>Current Avatar:</td>
+                </tr>
+                <tr>
+                    <td><input type="file" name="avatar" id="avatar"/></td>
+                    <td rowspan="2"><img src="avatar?for=${user.username}"/></td>
                 </tr>
                 <tr><td><input type="submit" value="Upload that puppy!"/></td></tr>
             </table>

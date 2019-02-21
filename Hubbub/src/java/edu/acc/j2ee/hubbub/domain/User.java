@@ -9,19 +9,15 @@ public class User implements java.io.Serializable {
 
     private String username;
     private String password;
-    private Date joinDate;
+    private String hash;
+    private Profile profile;
 
     public User() {
     }
     
     public User(String username, String password) {
-        this(username, password, new Date());
-    }
-
-    public User(String username, String password, Date joinDate) {
-        this.username = username;
-        this.password = password;
-        this.joinDate = joinDate;
+        this.setUsername(username);
+        this.setPassword(password);
     }
 
     public String getUsername() {
@@ -38,18 +34,35 @@ public class User implements java.io.Serializable {
         return password;
     }
 
-    public Date getJoinDate() {
-        return joinDate;
-    }
-
-    public void setJoinDate(Date joinDate) {
-        this.joinDate = joinDate;
-    }
-
     public final void setPassword(String password) {
-        if (password.matches(PASSWORD_PATTERN) || password.matches(HASH_PATTERN))
+        if (password.matches(PASSWORD_PATTERN)) {
             this.password = password;
+            this.hash = null;
+        }
         else throw new IllegalArgumentException("Password is invalid");
+    }
+    
+    public String getHash() {
+        return hash;
+    }
+    
+    public final void setHash(String hash) {
+        if (hash.matches(HASH_PATTERN)) {
+            this.hash = hash;
+            this.password = null;
+        }
+        else throw new IllegalArgumentException("Password hash is invalid");
+    }
+    
+    public Profile getProfile() {
+        return profile;
+    }
+    
+    public final void setProfile(Profile profile) {
+        if (profile == null)
+            throw new IllegalArgumentException("Profile is null");
+        else
+            this.profile = profile;
     }
 
     @Override

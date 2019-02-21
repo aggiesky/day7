@@ -1,51 +1,41 @@
 package edu.acc.j2ee.hubbub.domain;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Profile implements java.io.Serializable {
     public static final String NAME_PATTERN = "^[A-Za-z]{1,50}$";
     public static final String EMAIL_PATTERN = "^[\\w\\-\\.]+@[\\w\\-\\.]+$";
     
-    private User   owner;
     private String firstName;
     private String lastName;
+    private Date   joinDate;
     private String emailAddress;
     private String biography;
     private byte[] avatar;
     private String mime;
-    private List<User> followees = new ArrayList<>();
-    private List<User> followers = new ArrayList<>();
+    private List<String> followees = new ArrayList<>();
+    private List<String> followers = new ArrayList<>();
     private int    id;
     
     public Profile() {
-    }
-    
-    public Profile(User owner) {
-        this.owner = owner;
+        joinDate = new Date();
     }
 
-    public Profile(User owner, String firstName, String lastName, 
-            String emailAddress, String biography) {
-        this.owner = owner;
+    public Profile(String firstName, String lastName, String emailAddress, String biography) {
+        this();
         this.setFirstName(firstName);
         this.setLastName(lastName);
         this.setEmailAddress(emailAddress);
         this.biography = biography;
     }
     
-    public Profile(User owner, String firstName, String lastName, 
+    public Profile(String firstName, String lastName, Date joinDate,
             String emailAddress, String biography, int id) {
-        this(owner, firstName, lastName, emailAddress, biography);
+        this(firstName, lastName, emailAddress, biography);
+        this.joinDate = joinDate;
         this.id = id;
-    }
-    
-    public User getOwner() {
-        return owner;
-    }
-    
-    public void setOwner(User owner) {
-        this.owner = owner;
     }
 
     public String getFirstName() {
@@ -67,9 +57,16 @@ public class Profile implements java.io.Serializable {
         if (lastName == null || lastName.length() == 0 || lastName.matches(NAME_PATTERN))
             this.lastName = lastName;
         else
-            throw new IllegalArgumentException("Name format is invalid: "
-                    + lastName);
+            throw new IllegalArgumentException("Name format is invalid: " + lastName);
 
+    }
+    
+    public Date getJoinDate() {
+        return joinDate;
+    }
+    
+    public void setJoinDate(Date joinDate) {
+        this.joinDate = joinDate;
     }
 
     public String getEmailAddress() {
@@ -80,9 +77,7 @@ public class Profile implements java.io.Serializable {
         if (emailAddress == null || emailAddress.length() == 0 || emailAddress.matches(EMAIL_PATTERN))
             this.emailAddress = emailAddress;
         else
-            throw new IllegalArgumentException("Email format is invalid: "
-                    + emailAddress);
-
+            throw new IllegalArgumentException("Email format is invalid: " + emailAddress);
     }
 
     public String getBiography() {
@@ -109,19 +104,19 @@ public class Profile implements java.io.Serializable {
         this.mime = mime;
     }
     
-    public List<User> getFollowees() {
+    public List<String> getFollowees() {
         return followees;
     }
     
-    public void setFollowees(List<User> followees) {
+    public void setFollowees(List<String> followees) {
         this.followees = followees;
     }
     
-    public List<User> getFollowers() {
+    public List<String> getFollowers() {
         return followers;
     }
     
-    public void setFollowers(List<User> followers) {
+    public void setFollowers(List<String> followers) {
         this.followers = followers;
     }
     
@@ -135,6 +130,6 @@ public class Profile implements java.io.Serializable {
     
     @Override
     public String toString() {
-        return String.format("Profile[%s, %s, %d]", owner, mime, id);
+        return String.format("Profile[id=%d]", id);
     }
 }
