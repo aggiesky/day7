@@ -21,7 +21,7 @@ public class DbStartupListener implements ServletContextListener {
             sce.getServletContext().setAttribute("dao", dao);
         }
         catch (SQLException sqle) {
-            throw new DaoException(sqle);
+            sce.getServletContext().setAttribute("dao", null);
         }
     }
 

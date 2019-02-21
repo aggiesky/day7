@@ -6,6 +6,7 @@ import edu.acc.j2ee.hubbub.domain.Post;
 import edu.acc.j2ee.hubbub.domain.Profile;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -38,6 +39,7 @@ public class FrontController extends HttpServlet {
             case "avatar": destination = avatar(request); break;
             case "revert": destination = revert(request); break;
             case "follow": destination = follow(request); break;
+            case "unfollow": destination = unfollow(request); break;
         }
         
         String redirect = this.getServletConfig().getInitParameter("redirect.tag");
@@ -56,21 +58,23 @@ public class FrontController extends HttpServlet {
         if (loggedIn(request)) return "redirect:timeline";
         if (isGet(request)) return "login";             
         try {
-            // try to create a user - invalid params throw IllegalArgumentException
-            User candidate = new User(request.getParameter("username"),
-                    request.getParameter("password"));
-            User user = dao.findUserByUsernameAndPassword(candidate.getUsername(),
-                    candidate.getPassword());
+            User maybe = new User(request.getParameter("username"), request.getParameter("password"));
+            User user = dao.findUserByUsernameAndPassword(maybe.getUsername(),maybe.getPassword());
             if (user == null) {
                 request.setAttribute("flash", "Access Denied");
                 return "login";
             }
             request.getSession().setAttribute("user", user);
+            return "redirect:timeline";
         }
-        catch (Exception e) {
-            request.setAttribute("flash", e.getMessage());
+        catch (IllegalArgumentException iae) {
+            request.setAttribute("flash", "Username or password is invalid");
+            return "login";
         }
-        return "redirect:timeline";
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
+            return "login";
+        }
     }
     
     private String logout(HttpServletRequest request) {
@@ -79,11 +83,17 @@ public class FrontController extends HttpServlet {
     }
     
     private String timeline(HttpServletRequest request) {
-        Pager pager = Pager.of(request.getParameter("page"), getTimelinePageSize(),
+        List<Post> posts;
+        try {
+            Pager pager = Pager.of(request.getParameter("page"), getTimelinePageSize(),
                 dao.countAllPosts());
-        List<Post> posts = dao.findPostsInRange(pager.getPage(), pager.getPageSize());
-        request.setAttribute("pager", pager);
-        request.setAttribute("posts", posts);
+            posts = dao.findPostsInRange(pager.getPage(), pager.getPageSize());
+            request.setAttribute("pager", pager);
+            request.setAttribute("posts", posts);
+        }
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
+        }
         return "timeline";
     }
     
@@ -100,8 +110,8 @@ public class FrontController extends HttpServlet {
             request.setAttribute("posts", posts);
             request.setAttribute("pager", pager);
         }
-        catch (DaoException de) {
-            request.setAttribute("flash", de.getMessage());
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
         }
         return "timeline";
     }
@@ -122,19 +132,20 @@ public class FrontController extends HttpServlet {
                 return "join";
             }
         }
-        catch (Exception e) {
-            request.setAttribute("flash", e.getMessage());
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
             return "join";
         }
         try {
-            User user = new User(username, password2);        
-            Profile profile = new Profile(user);
-            dao.addUser(user);
-            dao.addProfile(profile);        
+            User user = new User(username, password2);            
+            Profile profile = new Profile();
+            dao.addProfile(profile);
+            user.setProfile(profile);
+            dao.addUser(user);       
             request.getSession().setAttribute("user", user);
             return "redirect:timeline";
         }
-        catch (Exception e){
+        catch (IllegalArgumentException | SQLException e) {
             request.setAttribute("flash", e.getMessage());
         }
         return "join";
@@ -151,11 +162,10 @@ public class FrontController extends HttpServlet {
             return "post";
         }
         catch (IllegalArgumentException iae) {
-            request.setAttribute("flash",
-                "Yer post content must be between 1 and 255 characters!");
+            request.setAttribute("flash", iae.getMessage());
         }
-        catch (DaoException de) {
-            request.setAttribute("flash", de.getMessage());
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
         }
         return "post";
     }
@@ -163,26 +173,24 @@ public class FrontController extends HttpServlet {
     private String profile(HttpServletRequest request) {
         if (notLoggedIn(request)) return "redirect:timeline";
         if (isGet(request)) {
-            try {
-                User target = request.getParameter("for") == null ?
-                    this.getSessionUser(request) :
-                    dao.findUserByUsername(request.getParameter("for"));
-                Profile profile = dao.findProfileByUser(target);
-                request.setAttribute("profile", profile);
-                request.setAttribute("target", target);
-                return "profile";
-            }
-            catch (Exception e) {
-                request.setAttribute("flash", "Couldn't retrieve profile: " +
-                        e.getMessage());
+            String target = request.getParameter("for");
+            if (target == null || target.length() == 0)
+                request.setAttribute("target", getSessionUser(request));
+            else {
+                try {
+                    User targetUser = dao.findUserByUsername(target);
+                    request.setAttribute("target", targetUser);
+                }
+                catch (SQLException sqle) {
+                    request.setAttribute("flash", sqle.getMessage());
+                }
             }
             return "profile";
         }
         
-        // POST mapping
-        Profile current = null;
+        // POST MAPPING
         try {
-            current = dao.findProfileByUser(this.getSessionUser(request));
+            Profile current = this.getSessionUser(request).getProfile();
             Profile temp = new Profile();
             temp.setFirstName(request.getParameter("firstName"));
             temp.setLastName(request.getParameter("lastName"));
@@ -190,20 +198,17 @@ public class FrontController extends HttpServlet {
             temp.setBiography(request.getParameter("biography"));
             dao.updateProfile(current, temp);
             request.setAttribute("success", "Profile updated");
+            request.setAttribute("target", this.getSessionUser(request));
         }
-        catch (IllegalArgumentException | DaoException e) {
+        catch (SQLException | IllegalArgumentException e) {
             request.setAttribute("flash", e.getMessage());
         }
-        request.setAttribute("profile", current);
         return "profile";
     }
     
     private String avatar(HttpServletRequest request) {
-        if (this.isGet(request)) {
-            Profile profile = dao.findProfileByUser(getSessionUser(request));
-            request.setAttribute("profile", profile);
-            return "upload";
-        }
+        if (this.isGet(request)) return "upload";
+
         try {
             final Part filePart = request.getPart("avatar");
             String filename = filePart.getSubmittedFileName();
@@ -215,43 +220,60 @@ public class FrontController extends HttpServlet {
             InputStream data = filePart.getInputStream();
             User user = this.getSessionUser(request);
             dao.updateAvatar(user, filetype, data);
-            Profile profile = dao.findProfileByUser(user);
-            request.setAttribute("profile", profile);
-        } catch (IOException | ServletException | DaoException e) {
+        } catch (IOException | SQLException | ServletException e) {
             request.setAttribute("flash", e.getMessage());
         }
         return "upload";
     }
     
     private String revert(HttpServletRequest request) {
-        User user = this.getSessionUser(request);
         try {
-            dao.revertAvatarFor(user);
-            Profile profile = dao.findProfileByUser(user);
-            request.setAttribute("profile", profile);
-            request.setAttribute("for", user.getUsername());
-        } catch (DaoException de) {
-            request.setAttribute("flash", de.getMessage());
+            dao.revertAvatarFor(this.getSessionUser(request));
+        } catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
         }
+        request.setAttribute("target", this.getSessionUser(request));
         return "profile";
     }
     
     private String follow(HttpServletRequest request) {
-        if (notLoggedIn(request))
-            return "redirect:timeline";
+        if (notLoggedIn(request)) return "redirect:timeline";
         User user = this.getSessionUser(request);
         String targetName = request.getParameter("target");
         if (targetName.equalsIgnoreCase(user.getUsername()))
             return "redirect:wall";
-        User target = dao.findUserByUsername(targetName);
-        dao.follow(user, target);
-        return "redirect:profile";
+        try {
+            User target = dao.findUserByUsername(targetName);
+            dao.follow(user, target);
+            return "redirect:wall&for=" + targetName;
+        }
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
+            return "wall&for=" + targetName;
+        }
+    }
+    
+    private String unfollow(HttpServletRequest request) {
+        if (notLoggedIn(request)) return "redirect:timeline";
+        User user = this.getSessionUser(request);
+        String targetName = request.getParameter("target");
+        if (targetName.equalsIgnoreCase(user.getUsername()))
+            return "profile&for=" + targetName;
+        try {
+            User target = dao.findUserByUsername(targetName);
+            dao.unfollow(user, target);
+            return "redirect:wall&for=" + targetName;
+        }
+        catch (SQLException sqle) {
+            request.setAttribute("flash", sqle.getMessage());
+        }
+        return "redirect:wall&for=" + targetName;
     }
 
     private HubbubDao getDao() {
         @SuppressWarnings("unchecked")
-        HubbubDao dao = (HubbubDao)this.getServletContext().getAttribute("dao");
-        return dao;
+        HubbubDao hdao = (HubbubDao)this.getServletContext().getAttribute("dao");
+        return hdao;
     }
     
     public User getSessionUser(HttpServletRequest request) {
